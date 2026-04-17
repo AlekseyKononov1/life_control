@@ -14,26 +14,19 @@ class ILogger(ABC):
 
 
 class Logger(ILogger):
-    def __init__(self, folderPath: str="./../logs", logFileName: str="/app.log"):
+    def __init__(self, folderPath: str="./logs", logFileName: str="/app.log"):
         self.ERROR_PATTERN = "~~~ERROR"
         self.INFO_PATTERN = "INFO"
         self.logFilePath = None
 
-        try:
-            if not isinstance(folderPath, str) or not isinstance(logFileName, str):
-                raise TypeError("logger should be initialized with str args")
-            if len(folderPath) == 0 or len(logFileName) == 0:
-                raise ValueError("logger should be initialized with correct str values")
+        if not isinstance(folderPath, str) or not isinstance(logFileName, str):
+            raise TypeError("logger should be initialized with str args")
+        if len(folderPath) == 0 or len(logFileName) == 0:
+            raise ValueError("logger should be initialized with correct str values")
 
-            self.logFilePath = folderPath + logFileName   
-            if not self.setup(folderPath):
-                raise Exception("logger setup not succeed")
-        except TypeError as te:
-            self.printExceptionWithTrace(te)
-        except ValueError as ve:
-            self.printExceptionWithTrace(ve)
-        except Exception as e:
-            self.printExceptionWithTrace(e)
+        self.logFilePath = folderPath + logFileName   
+        if not self.setup(folderPath):
+            raise Exception("logger setup not succeed")
 
     def setup(self, path: str) -> bool:
         try:
@@ -58,6 +51,3 @@ class Logger(ILogger):
             f.write(f"\n{self.ERROR_PATTERN};{dtNow};{record}")
         return True
 
-    def printExceptionWithTrace(self,exceptionMsg: str) -> None:
-        print(exceptionMsg)
-        traceback.print_exc()
