@@ -42,12 +42,12 @@ class Logger(ILogger):
     def info(self, record: str) -> bool:
         dtNow = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(self.logFilePath, "a", encoding="utf-8") as f:
-            f.write(f"\n{self.INFO_PATTERN};{dtNow};{record}")
+            f.write(f"{self.INFO_PATTERN};{dtNow};{record}\n")
         return True
         
     def error(self, record: str) -> bool:
         dtNow = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open (self.logFilePath, "a", encoding="utf-8") as f:
-            f.write(f"\n{self.ERROR_PATTERN};{dtNow};{record}")
+            f.write(f"{self.ERROR_PATTERN};{dtNow};{record}\n")
         return True
 
