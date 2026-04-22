@@ -35,7 +35,7 @@ class GuestRepository(IGuest):
             self.logger.error(f"User {login} got OS error with file {self.dbFolder + self.credFile}")
             return False
         
-        self.logger
+        self.logger.info(f"User {login} is successfuly made sign in")
         return True
 
     def signUp(self, login: str, pwd: str) -> bool:
