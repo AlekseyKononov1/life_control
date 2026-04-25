@@ -1,6 +1,12 @@
-from general_interface.guest import IGuest
 from os import makedirs
 from support_utils.logger import ILogger
+from abc import ABC, abstractmethod
+
+class IGuest(ABC):
+    @abstractmethod
+    def signIn(self, login: str, pwd: str) -> bool: pass
+    @abstractmethod
+    def signUp(self, login: str, pwd: str) -> bool: pass
 
 class GuestRepository(IGuest):
     def __init__(self, dbFolder: str="./db", credFile: str="/credentials.csv", logger: ILogger = None):

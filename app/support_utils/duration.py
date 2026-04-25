@@ -21,7 +21,6 @@ class Duration(IDuration):
         )
         if not isValidValue:
             raise ValueError("Not valid value for Duration instantiation")
-        
 
     def initDuration(self, duration: str) -> tuple[int,int]:
         separatedHnM = map(lambda x: int(x), duration.split("."))
