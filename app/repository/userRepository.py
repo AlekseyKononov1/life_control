@@ -25,6 +25,7 @@ class UserRepository(IUserRepository):
         try:
             with open(dbPath, "r", encoding="utf-8") as f:
                 data = f.readlines()
+            data = [d[:len(d)-1] for d in data if d != "" and len(d) != 1]
         except OSError as ose:
             self.logger.error(f"Check permissions and existence for {dbPath} ~ {ose}")
             return None
