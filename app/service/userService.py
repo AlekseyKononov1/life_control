@@ -7,11 +7,15 @@ class IUserService(ABC):
     @abstractmethod    
     def createDay(self, dbPath: str, day: str) -> None: pass
     @abstractmethod
-    def getUpdatedState(self, dbPath: str) -> list[str]: pass
+    def readData(self, dbPath: str) -> list[str] | None: pass
+    @abstractmethod
+    def writeData(self, dbPath: str, data: list[str]) -> None: pass
     @abstractmethod
     def updateDay(self, dbPath: str, newDay: str) -> None: pass
     @abstractmethod
     def deleteDay(self, dbPath: str, dayName: str) -> None: pass
+    @abstractmethod
+    def makeRemark(self) -> None: pass
 
 class UserService(IUserService):
     def __init__(self, logger: ILogger, userRepo: IUserRepository):
@@ -22,8 +26,11 @@ class UserService(IUserService):
         self.durationsRE = re.compile(r"durations:.*;")
         self.durationsCleanRE = re.compile(r"(durations:|;|\s)*")
 
-    def getUpdatedState(self, dbPath: str) -> list[str]: 
+    def readData(self, dbPath: str) -> list[str]: 
         return self.userRepo.readData(dbPath)
+    
+    def writeData(self, dbPath: str, data: list[str]) -> bool:
+        self.userRepo.writeData(dbPath, data)
     
     def createDay(self, dbPath: str, day: str) -> None:
         week = self.userRepo.readData(dbPath)

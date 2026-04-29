@@ -4,13 +4,12 @@ from service.validation import GuestForm
 from support_utils.duration import IDuration, Duration
 from repository.userRepository import UserRepository
 
-
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QPushButton, QScrollArea, QLabel
+    QTextEdit, QPushButton, QScrollArea, QLabel, QStyle
 )
-from PyQt6.QtGui import QColor, QPalette, QTextCursor
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QPalette, QTextCursor, QShortcut, QKeySequence
+from PyQt6.QtCore import Qt, QSize
 import sys
 import re
 
@@ -43,7 +42,6 @@ class NoScrollTextEdit(QTextEdit):
         super().keyPressEvent(event)
 
     def navigate(self, direction):
-        # Find parent TextItem
         item = self.parent()
         while item and item.__class__.__name__ != "TextItem":
             item = item.parent()
@@ -51,7 +49,6 @@ class NoScrollTextEdit(QTextEdit):
         if not item:
             return
 
-        # Find parent TextSection
         section = item.parent()
         while section and section.__class__.__name__ != "TextSection":
             section = section.parent()
@@ -65,7 +62,6 @@ class NoScrollTextEdit(QTextEdit):
 
         idx = fields.index(item)
         next_idx = (idx + direction) % len(fields)
-
         fields[next_idx].textbox.setFocus()
 
 
@@ -83,10 +79,8 @@ class TextItem(QWidget):
 
         self.textbox = NoScrollTextEdit()
         self.textbox.setFixedHeight(120)
-        self.textbox.textChanged.connect(self.validate_text)
 
         self.delete_btn = QPushButton("X")
-        # self.delete_btn.setFixedWidth(40)
         self.delete_btn.setStyleSheet("background-color: #8b0000; color: white;")
         self.delete_btn.clicked.connect(self.delete_self)
 
@@ -95,20 +89,6 @@ class TextItem(QWidget):
 
         layout.setStretch(0, 87)
         layout.setStretch(1, 13)
-
-    def validate_text(self):
-        text = self.textbox.toPlainText()
-        cleaned = re.sub(r"\d", "", text)
-
-        if cleaned != text:
-            self.textbox.blockSignals(True)
-            self.textbox.setPlainText(cleaned)
-
-            cursor = self.textbox.textCursor()
-            cursor.movePosition(QTextCursor.MoveOperation.End)
-            self.textbox.setTextCursor(cursor)
-
-            self.textbox.blockSignals(False)
 
     def delete_self(self):
         self.on_delete(self)
@@ -159,6 +139,12 @@ class TextSection(QWidget):
             field.setParent(None)
             field.deleteLater()
 
+    def has_invalid_fields(self):
+        for field in self.fields:
+            if re.search(r"\d", field.textbox.toPlainText()):
+                return True
+        return False
+
 
 # -----------------------------
 # Main Window
@@ -168,7 +154,7 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("Two Sections UI")
-        self.resize(900, 600)
+        self.resize(1920, 1080)
 
         palette = QPalette()
         palette.setColor(QPalette.ColorRole.Window, QColor("#0A0E23"))
@@ -176,13 +162,85 @@ class MainWindow(QWidget):
         palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
         self.setPalette(palette)
 
-        layout = QHBoxLayout(self)
+        main_layout = QVBoxLayout(self)
 
-        left = TextSection("Left Section")
-        right = TextSection("Right Section")
+        # ---------------- TOP BAR (GLOBAL) ----------------
+        top_bar = QHBoxLayout()
 
-        layout.addWidget(left)
-        layout.addWidget(right)
+        # LEFT: validation label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: #FF5555; font-size: 16px;")
+        top_bar.addWidget(self.status_label)
+
+        top_bar.addStretch()
+
+        # RIGHT: Save button
+        style = self.style()
+        save_btn = QPushButton()
+        save_btn.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton))
+        save_btn.setIconSize(QSize(17, 17))
+        save_btn.setFixedSize(30, 30)
+        save_btn.setStyleSheet("background: #2E8B57; border-radius: 6px;")
+        save_btn.clicked.connect(self.global_save)
+        top_bar.addWidget(save_btn)
+
+        # RIGHT: Compare button
+        compare_btn = QPushButton("≍")
+        compare_btn.setFixedSize(30, 30)
+        compare_btn.setStyleSheet("""
+            background: #4682B4;
+            border-radius: 6px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+        """)
+        compare_btn.clicked.connect(self.global_compare)
+        top_bar.addWidget(compare_btn)
+
+        main_layout.addLayout(top_bar)
+
+        # ---------------- SECTIONS ----------------
+        sections_layout = QHBoxLayout()
+
+        self.left = TextSection("Left Section")
+        self.right = TextSection("Right Section")
+
+        sections_layout.addWidget(self.left)
+        sections_layout.addWidget(self.right)
+
+        main_layout.addLayout(sections_layout)
+
+        # ---------------- SHORTCUTS ----------------
+        QShortcut(QKeySequence("Ctrl+S"), self, activated=self.global_save)
+        QShortcut(QKeySequence("Ctrl+Shift+C"), self, activated=self.global_compare)
+
+    # ---------------- GLOBAL ACTIONS ----------------
+    def validate(self):
+        if self.left.has_invalid_fields() or self.right.has_invalid_fields():
+            self.status_label.setText("Validation failed: digits are not allowed")
+            return False
+
+        self.status_label.setText("")
+        return True
+
+    def global_save(self):
+        if self.validate():
+            print(1)
+
+    # ---------------- NEW: highlight right section ----------------
+    def highlight_right_section(self):
+        for i, field in enumerate(self.right.fields):
+            if i % 2 == 0:
+                field.textbox.setStyleSheet("border: 2px solid red;")
+            else:
+                field.textbox.setStyleSheet("border: 2px solid green;")
+
+    def global_compare(self):
+        if not self.validate():
+            return
+
+        self.highlight_right_section()
+        print(2)
 
 
 # -----------------------------
@@ -197,3 +255,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+
