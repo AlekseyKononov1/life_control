@@ -90,6 +90,12 @@ class TextItem(QWidget):
 class TextSection(QWidget):
     def __init__(self, title):
         super().__init__()
+        self.validFieldRE = re.compile(
+            r"(mn|tue|wed|thu|fri|sat|sun);"
+            r"(tasks:\s*(.+[^,]|(.+,)+.+[^,])|same);"
+            r"durations:\s*.*;"
+        )
+        self.deleteNewLineRE = re.compile(r"\n")
 
         mainLayout = QVBoxLayout(self)
 
@@ -127,11 +133,11 @@ class TextSection(QWidget):
             field.setParent(None)
             field.deleteLater()
 
-    def hasInvalidFields(self):
-        for field in self.fields:
-            if re.search(r"\d", field.textbox.toPlainText()):
-                return True
-        return False
+    def hasInvalidFields(self) -> tuple[bool, int | None]:
+        for id, field in enumerate(self.fields):
+            if bool(self.validFieldRE.fullmatch(self.deleteNewLineRE.sub("",field.textbox.toPlainText()))) is False:
+                return True, id 
+        return False, None
 
 
 class MainWindow(QWidget):
@@ -139,6 +145,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.userController = userController
         self.deleteNewLineRE = re.compile(r"\n")
+        self.findRemarkRE = re.compile(r"remark:.*")
 
         self.setWindowTitle("Two Sections UI")
         self.resize(1920, 1080)
@@ -189,10 +196,9 @@ class MainWindow(QWidget):
 
         for day in self.userController.readData("db/etalon.csv"):
             self.left.addField(day)
-            
-        self.right.addField("something new hereA")
-        self.right.addField("something new hereB")
-        self.right.addField("something new hereC")
+        for day in self.userController.readData("db/userWeek.csv"):
+            self.right.addField(self.findRemarkRE.sub("", day))
+        self.highlightRightSection()
 
         sectionsLayout.addWidget(self.left)
         sectionsLayout.addWidget(self.right)
@@ -203,30 +209,41 @@ class MainWindow(QWidget):
         QShortcut(QKeySequence("Ctrl+Shift+C"), self, activated=self.globalCompare)
 
     def validate(self):
-        if self.left.hasInvalidFields() or self.right.hasInvalidFields():
-            self.statusLabel.setText("Validation failed: digits are not allowed")
+        hasInvalidFields, id = self.left.hasInvalidFields()
+        if hasInvalidFields:
+            self.statusLabel.setText(f"Not valid left section, id-{id}")
+            return False
+        hasInvalidFields, id = self.right.hasInvalidFields()
+        if hasInvalidFields:
+            self.statusLabel.setText(f"Not valid right section, id-{id}")
             return False
 
         self.statusLabel.setText("")
         return True
 
     def globalSave(self):
-        # if self.validate():
+        if not self.validate():
+            return
+        
         etalon = []
+        userWeek = []
         for field in self.left.fields:
             etalon.append(self.deleteNewLineRE.sub("", field.textbox.toPlainText()))
+        for field in self.right.fields:
+            userWeek.append(self.deleteNewLineRE.sub("", field.textbox.toPlainText()))
+        self.userController.writeData("db/userWeek.csv", userWeek)
         self.userController.writeData("db/etalon.csv", etalon)
         
     def highlightRightSection(self):
-        for i, field in enumerate(self.right.fields):
-            if i % 2 == 0:
-                field.textbox.setStyleSheet("border: 2px solid red;")
-            else:
+        userWeek = self.userController.readData("db/userWeek.csv")
+        for day, field in zip(userWeek, self.right.fields):
+            if "green" in self.findRemarkRE.search(day).group():
                 field.textbox.setStyleSheet("border: 2px solid green;")
+            else:
+                field.textbox.setStyleSheet("border: 2px solid red;")
 
     def globalCompare(self):
         if not self.validate():
             return
-
+        
         self.highlightRightSection()
-        print(2)

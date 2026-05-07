@@ -91,11 +91,11 @@ class UserService(IUserService):
                         userWeek[etalonDayName] = self.remarkRE.sub("remark:red", userWeek[etalonDayName])
                         break
                     elif ud < ed:
-                        userWeek[etalonDayName] += ";remark:red"
+                        userWeek[etalonDayName] += "remark:red"
                         break
                     
                 if bool(self.remarkRE.search(userWeek[etalonDayName])) is False:
-                        userWeek[etalonDayName] += ";remark:green"
+                        userWeek[etalonDayName] += "remark:green"
                 
         etalon = [day for _,day in etalon.items()]
         userWeek = [day for _,day in userWeek.items()]
